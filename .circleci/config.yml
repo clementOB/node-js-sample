@@ -3,13 +3,18 @@ version: 2.1
 jobs:
   build:
     machine:
-      # - image: cimg/node:16.20
+      image: ubuntu-2004:202010-01 # Utilise une image de machine CircleCI
     steps:
       # Étape 1 : Vérifier le code source
       - checkout
 
-      # Étape 2 : Configurer Docker distant
-      - setup_remote_docker
+      # Étape 2 : Installer Docker (si nécessaire)
+      - run:
+          name: Install Docker
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y docker.io
+            sudo systemctl start docker
 
       # Étape 3 : Construire l'image Docker
       - run:
@@ -24,7 +29,7 @@ jobs:
             docker run -d -p 8080:8080 --name test-container -e PORT=8080 node-js-sample
             
             # Attendre que le conteneur démarre
-            sleep 5
+            sleep 10
             
             # Afficher les logs pour déboguer en cas de problème
             docker logs test-container
