@@ -17,11 +17,13 @@ jobs:
             sleep 5
             curl -f http://localhost:8080 || (echo "App failed to start" && exit 1)
       - run:
-          name: Push to DockerHub
+          name: Test Docker container
           command: |
-            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-            docker tag node-js-sample:latest $DOCKER_USERNAME/node-js-sample:latest
-            docker push $DOCKER_USERNAME/node-js-sample:latest
+            docker run -d -p 8080:8080 --name test-container node-js-sample
+            sleep 5
+            docker logs test-container
+            curl -f http://localhost:8080 || (echo "App failed to start" && exit 1)
+
 
 workflows:
   version: 2
