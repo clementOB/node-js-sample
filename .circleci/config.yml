@@ -2,21 +2,19 @@ version: 2.1
 
 jobs:
   build:
-    machine:
-      # Utilise l'image Ubuntu 20.04 fournie par CircleCI
-      image: ubuntu-2004:202004-01
+    machine: true
     steps:
       # 1. Récupérer le code source
       - checkout
 
-      # 2. Supprimer d'éventuelles anciennes versions de Docker/containerd
+      # 2. Supprimer d’éventuelles anciennes versions de Docker/containerd
       - run:
           name: Remove conflicting packages
           command: |
             sudo apt-get remove -y containerd docker docker-engine docker.io runc || true
             sudo apt-get update
 
-      # 3. Installer les dépendances nécessaires (apt, ca-certificates, etc.)
+      # 3. Préparer l'installation de Docker
       - run:
           name: Prepare system for Docker install
           command: |
@@ -34,39 +32,27 @@ jobs:
           command: |
             sudo apt-get install -y docker-ce docker-ce-cli containerd.io
 
-      # 5. Construire l'image Docker à partir de ton Dockerfile
+      # 5. Construire l'image Docker
       - run:
           name: Build Docker image
           command: docker build -t node-js-sample .
 
-      # 6. Tester l'application à l'intérieur du conteneur
+      # 6. Tester l'application dans le conteneur
       - run:
           name: Test Docker container
           command: |
-            # Lancer un conteneur en exposant le port 8080
             docker run -d -p 8080:8080 --name test-container -e PORT=8080 node-js-sample
-            
-            # Attendre quelques secondes pour que l'application démarre
             echo "Waiting for the container to start..."
             sleep 10
-            
-            # Afficher les logs du conteneur pour le débogage
             docker logs test-container
-            
-            # Vérifier si l'application répond sur le port 8080
             curl -v http://127.0.0.1:8080 || (echo "App failed to start" && exit 1)
 
       # 7. Pousser l'image sur DockerHub
       - run:
           name: Push to DockerHub
           command: |
-            # Connexion à DockerHub via login
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-            
-            # Tag de l'image
             docker tag node-js-sample:latest $DOCKER_USERNAME/node-js-sample:latest
-            
-            # Pousser l'image vers DockerHub
             docker push $DOCKER_USERNAME/node-js-sample:latest
 
 workflows:
