@@ -2,41 +2,48 @@ version: 2.1
 
 jobs:
   build:
-    machine:
-      # Utilisation d'une machine Ubuntu 20.04
-      image: ubuntu-2004:202004-01
+    docker:
+      # Utilise une image CircleCI contenant Node.js
+      - image: cimg/node:16.20
     steps:
-      # Étape 1 : Vérifier le code source
+      # Étape 1 : Récupération du code source
       - checkout
 
-      # Étape 2 : Construire l'image Docker
-      - run:
-          name: Install Docker
-          command: |
-            sudo apt-get update
-            sudo apt-get install -y docker.io
-            sudo systemctl start docker
+      # Étape 2 : Configurer Docker distant
+      - setup_remote_docker
 
+      # Étape 3 : Construire l'image Docker
       - run:
           name: Build Docker image
           command: docker build -t node-js-sample .
 
-      # Étape 3 : Tester le conteneur Docker
+      # Étape 4 : Tester le conteneur Docker
       - run:
           name: Test Docker container
           command: |
+            # Lancer le conteneur et définir le port
             docker run -d -p 8080:8080 --name test-container -e PORT=8080 node-js-sample
-            echo "Waiting for the container to start..."
+            
+            # Attendre le démarrage
             sleep 10
+
+            # Afficher les logs du conteneur
             docker logs test-container
+
+            # Vérifier si l'application répond sur 8080
             curl -v http://127.0.0.1:8080 || (echo "App failed to start" && exit 1)
 
-      # Étape 4 : Pousser l'image Docker sur DockerHub
+      # Étape 5 : Pousser l'image sur DockerHub
       - run:
           name: Push to DockerHub
           command: |
+            # Connexion à DockerHub
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+            
+            # Tag de l'image
             docker tag node-js-sample:latest $DOCKER_USERNAME/node-js-sample:latest
+            
+            # Pousser l'image vers DockerHub
             docker push $DOCKER_USERNAME/node-js-sample:latest
 
 workflows:
