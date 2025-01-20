@@ -3,12 +3,13 @@ version: 2.1
 jobs:
   build:
     machine:
-      image: ubuntu-2004:202010-01 # Utilise une image de machine CircleCI
+      # Utilisation d'une machine Ubuntu 20.04
+      image: ubuntu-2004:202004-01
     steps:
       # Étape 1 : Vérifier le code source
       - checkout
 
-      # Étape 2 : Installer Docker (si nécessaire)
+      # Étape 2 : Construire l'image Docker
       - run:
           name: Install Docker
           command: |
@@ -16,38 +17,26 @@ jobs:
             sudo apt-get install -y docker.io
             sudo systemctl start docker
 
-      # Étape 3 : Construire l'image Docker
       - run:
           name: Build Docker image
           command: docker build -t node-js-sample .
 
-      # Étape 4 : Tester le conteneur Docker
+      # Étape 3 : Tester le conteneur Docker
       - run:
           name: Test Docker container
           command: |
-            # Lancer le conteneur avec le port et les variables d'environnement
             docker run -d -p 8080:8080 --name test-container -e PORT=8080 node-js-sample
-            
-            # Attendre que le conteneur démarre
+            echo "Waiting for the container to start..."
             sleep 10
-            
-            # Afficher les logs pour déboguer en cas de problème
             docker logs test-container
-            
-            # Tester si le conteneur répond sur le port 8080
             curl -v http://127.0.0.1:8080 || (echo "App failed to start" && exit 1)
 
-      # Étape 5 : Pousser l'image Docker sur DockerHub
+      # Étape 4 : Pousser l'image Docker sur DockerHub
       - run:
           name: Push to DockerHub
           command: |
-            # Se connecter à DockerHub
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-            
-            # Ajouter un tag à l'image Docker
             docker tag node-js-sample:latest $DOCKER_USERNAME/node-js-sample:latest
-            
-            # Pousser l'image vers DockerHub
             docker push $DOCKER_USERNAME/node-js-sample:latest
 
 workflows:
