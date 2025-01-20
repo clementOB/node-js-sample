@@ -2,8 +2,8 @@ version: 2.1
 
 jobs:
   build:
-    docker:
-      - image: cimg/node:16.20
+    machine:
+      # - image: cimg/node:16.20
     steps:
       # Étape 1 : Vérifier le code source
       - checkout
