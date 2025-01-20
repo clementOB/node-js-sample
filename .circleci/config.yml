@@ -2,42 +2,31 @@ version: 2.1
 
 jobs:
   build:
-    machine: true
+    machine: true  # Utilise la machine CircleCI par défaut (Ubuntu)
     steps:
       # 1. Récupérer le code source
       - checkout
 
-      # 2. Supprimer d’éventuelles anciennes versions de Docker/containerd
+      # 2. (Optionnel) Vérifier la version de Docker
       - run:
-          name: Remove conflicting packages
+          name: Check Docker version
           command: |
-            sudo apt-get remove -y containerd docker docker-engine docker.io runc || true
-            sudo apt-get update
+            docker --version
+            docker ps || true
 
-      # 3. Préparer l'installation de Docker
+      # 3. (Optionnel) Démarrer Docker si nécessaire
       - run:
-          name: Prepare system for Docker install
+          name: Start Docker
           command: |
-            sudo apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-            sudo add-apt-repository \
-              "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
-              $(lsb_release -cs) \
-              stable"
-            sudo apt-get update
+            sudo service docker start
+            docker info
 
-      # 4. Installer Docker CE et containerd.io
-      - run:
-          name: Install Docker
-          command: |
-            sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-
-      # 5. Construire l'image Docker
+      # 4. Construire l'image Docker (à partir du Dockerfile dans le repo)
       - run:
           name: Build Docker image
           command: docker build -t node-js-sample .
 
-      # 6. Tester l'application dans le conteneur
+      # 5. Tester l'application dans le conteneur
       - run:
           name: Test Docker container
           command: |
@@ -47,7 +36,7 @@ jobs:
             docker logs test-container
             curl -v http://127.0.0.1:8080 || (echo "App failed to start" && exit 1)
 
-      # 7. Pousser l'image sur DockerHub
+      # 6. Pousser l'image sur DockerHub
       - run:
           name: Push to DockerHub
           command: |
